@@ -1,0 +1,313 @@
+% Wrong Fuel Detection and Misfuelling Prevention System
+% MATLAB/Simulink R2021a compatible model builder
+% Run this script in MATLAB R2021a. It creates the .slx model, runs three
+% example scenarios, plots the outputs, and saves a results MAT file.
+% NOTE: Inputs are illustrative simulation values, not real sensor data.
+% Calibrate thresholds using actual samples before any hardware use.
+clear; clc; close all;
+model = 'WrongFuel_Density_RGB_R2021a';
+if bdIsLoaded(model), close_system(model, 0); end 
+if exist([model '.slx'],'file'), delete([model '.slx']); end 
+new_system(model);
+open_system(model);
+set_param(model, 'StopTime','10', 'Solver','FixedStepDiscrete', ... 
+'FixedStep','0.1', 'SaveTime','on', 'SignalLogging','on');
+% Layout positions
+add_block('simulink/Sources/Constant',[model '/Density_kg_m3'], ... 
+'Value','740','Position',[35 45 105 75]);
+add_block('simulink/Sources/Constant',[model '/Red_R'], ... 
+'Value','210','Position',[35 105 105 135]);
+37
+add_block('simulink/Sinks/Scope',[model '/Buzzer_Scope'], ... 
+'Position',[920 190 990 230]);
+add_block('simulink/Sinks/Scope',[model '/Drain_Valve_Scope'], ... 
+'Position',[920 285 990 325]);
+% Optional input scope to inspect Density, R, G, and B together 
+add_block('simulink/Signal Routing/Mux',[model '/Input_Mux'], ...
+'Inputs','4','Position',[150 430 155 510]); 
+add_block('simulink/Sinks/Scope',[model '/Density_RGB_Input_Scope'], ...
+'Position',[225 430 300 490]);
+% Combined output scope retained for convenience 
+add_block('simulink/Signal Routing/Mux',[model '/Output_Mux'], ...
+'Inputs','3','Position',[790 390 795 455]); 
+add_block('simulink/Sinks/Scope',[model '/Output_Scope'], ...
+'Position',[855 385 925 455]);
+% Wiring: inputs to comparators 
+add_line(model,'Density_kg_m3/1','Density_Min_Check/1'); 
+add_line(model,'Density_kg_m3/1','Density_Max_Check/1');
+add_line(model,'Red_R/1','Red_Min_Check/1'); 
+add_line(model,'Red_R/1','Red_Max_Check/1');
+38
+add_block('simulink/Logic and Bit Operations/Compare To Constant',[model 
+'/Green_Min_Check'], ...
+'const','180','relop','>=','Position',[155 215 255 245]);
+add_block('simulink/Logic and Bit Operations/Compare To Constant',[model 
+'/Green_Max_Check'], ...
+'const','190','relop','<=','Position',[155 260 255 290]);
+add_block('simulink/Logic and Bit Operations/Compare To Constant',[model 
+'/Blue_Min_Check'], ...
+'const','120','relop','>=','Position',[155 305 255 335]);
+add_block('simulink/Logic and Bit Operations/Compare To Constant',[model 
+'/Blue_Max_Check'], ...
+'const','135','relop','<=','Position',[155 350 255 380]);
+% AND gates: pair each min/max range, then all checks 
+pairs = {'Density_Range_OK', [315 50 365 85]; ...
+'Red_Range_OK', [315 145 365 180]; ...
+'Green_Range_OK', [315 235 365 270]; ...
+'Blue_Range_OK', [315 325 365 360]};
+for k=1:size(pairs,1) 
+nm=pairs{k,1}; pos=pairs{k,2};
+add_block('simulink/Logic and Bit Operations/Logical Operator',[model '/' nm], ... 
+'Operator','AND','Inputs','2','Position',pos);
+end
+39
+add_block('simulink/Logic and Bit Operations/Logical Operator',[model 
+'/RGB_All_Ranges_OK'], ...
+'Operator','AND','Inputs','4','Position',[425 185 475 255]);
+add_block('simulink/Logic and Bit Operations/Logical Operator',[model 
+'/All_Criteria_OK'], ...
+'Operator','AND','Inputs','3','Position',[535 125 590 190]);
+add_block('simulink/Logic and Bit Operations/Logical Operator',[model 
+'/Buzzer_Alert'], ...
+'Operator','NOT','Inputs','1','Position',[655 225 705 260]);
+add_block('simulink/Logic and Bit Operations/Logical Operator',[model 
+'/Drain_Command'], ...
+'Operator','AND','Inputs','2','Position',[655 300 710 345]);
+% Output displays and separate scopes
+add_block('simulink/Sinks/Display',[model '/Main_Valve_Display'], ...
+'Position',[790 105 875 135]);
+add_block('simulink/Sinks/Display',[model '/Buzzer_Display'], ... 
+'Position',[790 210 875 240]);
+add_block('simulink/Sinks/Display',[model '/Drain_Valve_Display'], ... 
+'Position',[790 305 875 335]);
+% Three independent output scopes, as requested 
+add_block('simulink/Sinks/Scope',[model '/Main_Valve_Scope'], ...
+'Position',[920 85 990 125]);
+40
+add_block('simulink/Sinks/Scope',[model '/Buzzer_Scope'], ... 
+'Position',[920 190 990 230]);
+add_block('simulink/Sinks/Scope',[model '/Drain_Valve_Scope'], ... 
+'Position',[920 285 990 325]);
+% Optional input scope to inspect Density, R, G, and B together 
+add_block('simulink/Signal Routing/Mux',[model '/Input_Mux'], ...
+'Inputs','4','Position',[150 430 155 510]); 
+add_block('simulink/Sinks/Scope',[model '/Density_RGB_Input_Scope'], ...
+'Position',[225 430 300 490]);
+% Combined output scope retained for convenience 
+add_block('simulink/Signal Routing/Mux',[model '/Output_Mux'], ...
+'Inputs','3','Position',[790 390 795 455]); 
+add_block('simulink/Sinks/Scope',[model '/Output_Scope'], ...
+'Position',[855 385 925 455]);
+% Wiring: inputs to comparators 
+add_line(model,'Density_kg_m3/1','Density_Min_Check/1'); 
+add_line(model,'Density_kg_m3/1','Density_Max_Check/1');
+add_line(model,'Red_R/1','Red_Min_Check/1'); 
+add_line(model,'Red_R/1','Red_Max_Check/1');
+41
+add_block('simulink/Sinks/Scope',[model '/Buzzer_Scope'], ... 
+'Position',[920 190 990 230]);
+add_block('simulink/Sinks/Scope',[model '/Drain_Valve_Scope'], ... 
+'Position',[920 285 990 325]);
+% Optional input scope to inspect Density, R, G, and B together 
+add_block('simulink/Signal Routing/Mux',[model '/Input_Mux'], ...
+'Inputs','4','Position',[150 430 155 510]); 
+add_block('simulink/Sinks/Scope',[model '/Density_RGB_Input_Scope'], ...
+'Position',[225 430 300 490]);
+% Combined output scope retained for convenience 
+add_block('simulink/Signal Routing/Mux',[model '/Output_Mux'], ...
+'Inputs','3','Position',[790 390 795 455]); 
+add_block('simulink/Sinks/Scope',[model '/Output_Scope'], ...
+'Position',[855 385 925 455]);
+% Wiring: inputs to comparators 
+add_line(model,'Density_kg_m3/1','Density_Min_Check/1'); 
+add_line(model,'Density_kg_m3/1','Density_Max_Check/1');
+add_line(model,'Red_R/1','Red_Min_Check/1'); 
+add_line(model,'Red_R/1','Red_Max_Check/1');
+42
+add_line(model,'Green_G/1','Green_Min_Check/1'); 
+add_line(model,'Green_G/1','Green_Max_Check/1');
+add_line(model,'Blue_B/1','Blue_Min_Check/1'); 
+add_line(model,'Blue_B/1','Blue_Max_Check/1');
+add_line(model,'Density_Min_Check/1','Density_Range_OK/1');
+add_line(model,'Density_Max_Check/1','Density_Range_OK/2');
+add_line(model,'Red_Min_Check/1','Red_Range_OK/1'); 
+add_line(model,'Red_Max_Check/1','Red_Range_OK/2');
+add_line(model,'Green_Min_Check/1','Green_Range_OK/1'); 
+add_line(model,'Green_Max_Check/1','Green_Range_OK/2');
+add_line(model,'Blue_Min_Check/1','Blue_Range_OK/1'); 
+add_line(model,'Blue_Max_Check/1','Blue_Range_OK/2');
+add_line(model,'Red_Range_OK/1','RGB_All_Ranges_OK/1'); 
+add_line(model,'Green_Range_OK/1','RGB_All_Ranges_OK/2'); 
+add_line(model,'Blue_Range_OK/1','RGB_All_Ranges_OK/3');
+% Fourth RGB input uses sensor validity, ensuring invalid readings reject. 
+add_line(model,'Sensors_Valid/1','RGB_All_Ranges_OK/4'); 
+add_line(model,'Density_Range_OK/1','All_Criteria_OK/1'); 
+add_line(model,'RGB_All_Ranges_OK/1','All_Criteria_OK/2'); 
+add_line(model,'Sensors_Valid/1','All_Criteria_OK/3');
+43
+add_line(model,'All_Criteria_OK/1','Main_Valve_Display/1'); 
+add_line(model,'All_Criteria_OK/1','Main_Valve_Scope/1'); 
+add_line(model,'All_Criteria_OK/1','Buzzer_Alert/1'); 
+add_line(model,'Buzzer_Alert/1','Buzzer_Display/1'); 
+add_line(model,'Buzzer_Alert/1','Buzzer_Scope/1'); 
+add_line(model,'Buzzer_Alert/1','Drain_Command/1'); 
+add_line(model,'Drain_Path_Safe/1','Drain_Command/2'); 
+add_line(model,'Drain_Command/1','Drain_Valve_Display/1'); 
+add_line(model,'Drain_Command/1','Drain_Valve_Scope/1');
+% Input waveform scope: four editable Constant inputs 
+add_line(model,'Density_kg_m3/1','Input_Mux/1'); 
+add_line(model,'Red_R/1','Input_Mux/2'); 
+add_line(model,'Green_G/1','Input_Mux/3'); 
+add_line(model,'Blue_B/1','Input_Mux/4'); 
+add_line(model,'Input_Mux/1','Density_RGB_Input_Scope/1');
+% Combined output scope retained for convenience 
+add_line(model,'All_Criteria_OK/1','Output_Mux/1'); 
+add_line(model,'Buzzer_Alert/1','Output_Mux/2'); 
+add_line(model,'Drain_Command/1','Output_Mux/3'); 
+add_line(model,'Output_Mux/1','Output_Scope/1');
+44
+% Add labels / annotations
+ann = Simulink.Annotation(model, ...
+'Density + RGB acceptance logic. Main valve opens only when all checks pass.
+Drain remains closed unless Drain_Path_Safe=1.'); 
+ann.Position = [330 20 750 55];
+save_system(model);
+fprintf('\\nCreated model: %s.slx\\n', model);
+% Run and record a valid petrol-like illustrative scenario 
+set_param([model '/Density_kg_m3'],'Value','740'); 
+set_param([model '/Red_R'],'Value','210');
+set_param([model '/Green_G'],'Value','185');
+set_param([model '/Blue_B'],'Value','125'); 
+set_param([model '/Sensors_Valid'],'Value','1'); 
+set_param([model '/Drain_Path_Safe'],'Value','0'); 
+simOutPetrol = sim(model,'ReturnWorkspaceOutputs','on');
+fprintf('Petrol-like scenario: density=740, RGB=(210,185,125), sensor valid=1.\\n'); 
+fprintf('Expected main valve=1, buzzer=0, drain valve=0.\\n');
+% Run a rejected sample: RGB mismatch 
+set_param([model '/Red_R'],'Value','150');
+set_param([model '/Green_G'],'Value','120');
+set_param([model '/Blue_B'],'Value','80');
+45
+simOutReject = sim(model,'ReturnWorkspaceOutputs','on');
+fprintf('Rejected sample scenario: RGB outside the illustrative petrol limits.\\n');
+fprintf('Expected main valve=0, buzzer=1, drain valve=0 unless safe drain is
+enabled.\\n');
+% Run invalid sensor scenario 
+set_param([model '/Red_R'],'Value','210');
+set_param([model '/Green_G'],'Value','185');
+set_param([model '/Blue_B'],'Value','125'); 
+set_param([model '/Sensors_Valid'],'Value','0'); 
+simOutInvalid = sim(model,'ReturnWorkspaceOutputs','on');
+fprintf('Invalid sensor scenario: sensor valid=0. Expected main valve=0, 
+buzzer=1.\\n');
+% Restore valid petrol-like inputs and save the model in that state. 
+set_param([model '/Sensors_Valid'],'Value','1');
+set_param([model '/Red_R'],'Value','210');
+set_param([model '/Green_G'],'Value','185');
+set_param([model '/Blue_B'],'Value','125'); 
+save_system(model);
+46
+set_param([model '/Blue_B'],'Value','80');
+simOutReject = sim(model,'ReturnWorkspaceOutputs','on');
+fprintf('Rejected sample scenario: RGB outside the illustrative petrol limits.\\n');
+fprintf('Expected main valve=0, buzzer=1, drain valve=0 unless safe drain is
+enabled.\\n');
+% Run invalid sensor scenario 
+set_param([model '/Red_R'],'Value','210');
+set_param([model '/Green_G'],'Value','185');
+set_param([model '/Blue_B'],'Value','125'); 
+set_param([model '/Sensors_Valid'],'Value','0'); 
+simOutInvalid = sim(model,'ReturnWorkspaceOutputs','on');
+fprintf('Invalid sensor scenario: sensor valid=0. Expected main valve=0, 
+buzzer=1.\\n');
+% Restore valid petrol-like inputs and save the model in that state. 
+set_param([model '/Sensors_Valid'],'Value','1');
+set_param([model '/Red_R'],'Value','210');
+set_param([model '/Green_G'],'Value','185');
+set_param([model '/Blue_B'],'Value','125'); 
+save_system(model);
+ann = Simulink.Annotation(model, ...
+'Density + RGB acceptance logic. Main valve opens only when all checks pass.
+Drain remains closed unless Drain_Path_Safe=1.'); 
+47
+ann.Position = [330 20 750 55];
+save_system(model);
+fprintf('\\nCreated model: %s.slx\\n', model);
+% Run and record a valid petrol-like illustrative scenario 
+set_param([model '/Density_kg_m3'],'Value','740'); 
+set_param([model '/Red_R'],'Value','210');
+set_param([model '/Green_G'],'Value','185');
+set_param([model '/Blue_B'],'Value','125'); 
+set_param([model '/Sensors_Valid'],'Value','1'); 
+set_param([model '/Drain_Path_Safe'],'Value','0'); 
+simOutPetrol = sim(model,'ReturnWorkspaceOutputs','on');
+fprintf('Petrol-like scenario: density=740, RGB=(210,185,125), sensor valid=1.\\n'); 
+fprintf('Expected main valve=1, buzzer=0, drain valve=0.\\n');
+% Run a rejected sample: RGB mismatch 
+set_param([model '/Red_R'],'Value','150');
+set_param([model '/Green_G'],'Value','120');
+set_param([model '/Blue_B'],'Value','80');
+48
+% Illustrative result plot for presentation (decision-level output) 
+t = [0 1 2 3 4 5 6 7 8 9 10];
+mainValve = [ones(1,4) zeros(1,3) zeros(1,4)]; 
+buzzer = 1-mainValve;
+drainValve = zeros(size(t));
+figure('Name','Wrong Fuel Detection - Illustrative Outputs','Color','w'); 
+stairs(t,mainValve,'LineWidth',1.8); hold on; 
+stairs(t,buzzer,'LineWidth',1.8);
+stairs(t,drainValve,'LineWidth',1.8); 
+grid on; ylim([-0.1 1.2]); xlim([0 10]);
+xlabel('Time (s)'); ylabel('Digital output (0/1)');
+title('Illustrative Control Outputs: Accepted then Rejected Sample'); 
+legend('Main tank valve','Buzzer alert','Drain valve','Location','best'); 
+saveas(gcf,'WrongFuel_R2021a_Illustrative_Output.png');
+save('WrongFuel_R2021a_Simulation_Results.mat', ... 
+'simOutPetrol','simOutReject','simOutInvalid','t','mainValve','buzzer','drainValve');
+fprintf('\\nSaved output plot and MAT results in the current folder.\\n');
+fprintf('IMPORTANT: The plot is illustrative; confirm the model runs in your 
+MATLAB R2021a installation.\\n');
+add_block('simulink/Sinks/Scope',[model '/Buzzer_Scope'], ... 
+'Position',[920 190 990 230]);
+add_block('simulink/Sinks/Scope',[model '/Drain_Valve_Scope'], ... 
+'Position',[920 285 990 325]);
+49
+% Illustrative result plot for presentation (decision-level output) 
+t = [0 1 2 3 4 5 6 7 8 9 10];
+mainValve = [ones(1,4) zeros(1,3) zeros(1,4)]; 
+buzzer = 1-mainValve;
+drainValve = zeros(size(t));
+figure('Name','Wrong Fuel Detection - Illustrative Outputs','Color','w'); 
+stairs(t,mainValve,'LineWidth',1.8); hold on; 
+stairs(t,buzzer,'LineWidth',1.8);
+stairs(t,drainValve,'LineWidth',1.8); 
+grid on; ylim([-0.1 1.2]); xlim([0 10]);
+xlabel('Time (s)'); ylabel('Digital output (0/1)');
+title('Illustrative Control Outputs: Accepted then Rejected Sample'); 
+legend('Main tank valve','Buzzer alert','Drain valve','Location','best'); 
+saveas(gcf,'WrongFuel_R2021a_Illustrative_Output.png');
+save('WrongFuel_R2021a_Simulation_Results.mat', ... 
+'simOutPetrol','simOutReject','simOutInvalid','t','mainValve','buzzer','drainValve');
+fprintf('\\nSaved output plot and MAT results in the current folder.\\n');
+fprintf('IMPORTANT: The plot is illustrative; confirm the model runs in your 
+MATLAB R2021a installation.\\n');
+add_block('simulink/Sinks/Scope',[model '/Buzzer_Scope'], ... 
+'Position',[920 190 990 230]);
+add_block('simulink/Sinks/Scope',[model '/Drain_Valve_Scope'], ... 
+'Position',[920 285 990 325]);
+50
+% Optional input scope to inspect Density, R, G, and B together 
+add_block('simulink/Signal Routing/Mux',[model '/Input_Mux'], ...
+'Inputs','4','Position',[150 430 155 510]); 
+add_block('simulink/Sinks/Scope',[model '/Density_RGB_Input_Scope'], ...
+'Position',[225 430 300 490]);
+% Combined output scope retained for convenience 
+add_block('simulink/Signal Routing/Mux',[model '/Output_Mux'], ...
+'Inputs','3','Position',[790 390 795 455]); 
+add_block('simulink/Sinks/Scope',[model '/Output_Scope'], ...
+'Position',[855 385 925 455]);
+% Wiring: inputs to comparators 
+add_line(model,'Density_kg_m3/1','Density_Min_Check/1'); 
+add_line(model,'Density_kg_m3/1','Density_Max_Check/1');
+add_line(model,'Red_R/1','Red_Min_Check/1'); 
+add_line(model,'Red_R/1','Red_Max_Check/1');
