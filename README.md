@@ -1,0 +1,2 @@
+# DESING-AND-DEVELOPMENT-OF-DENSITY-WORNG-FUEL-DETECTION-AND-MISFUELLING-PREVENTION-SYSTEM
+The Wrong-Fuel Prevention System uses an ESP32, density meter, and RGB sensor to identify fuel before it enters the tank. It automatically accepts suitable petrol and rejects incorrect or invalid fuel using solenoid valves. A buzzer alerts users, while an LCD displays readings and fuel status, helping prevent wrong-fuel incidents
